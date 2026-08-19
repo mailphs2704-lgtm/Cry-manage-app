@@ -1,5 +1,6 @@
 package com.cry.manage.data.model
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -7,22 +8,27 @@ import androidx.room.PrimaryKey
 data class XanhTrip(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    @ColumnInfo(defaultValue = "'BIKE'")
     val serviceType: String = "BIKE",
     val revenue: Double,
     val netIncome: Double,
+    @ColumnInfo(defaultValue = "0")
     val tips: Double = 0.0,
     val promotion: Double = 0.0,
+    @ColumnInfo(defaultValue = "0")
     val foodCost: Double = 0.0,
     val discountAmount: Double,
     val discountPercent: Double,
     val paymentType: String,
     val timeSlot: String,
     val points: Int,
+    @ColumnInfo(defaultValue = "''")
     val note: String = "",
     val driverWalletId: Long,
     val driverWalletName: String,
     val receiveWalletId: Long? = null,
     val receiveWalletName: String? = null,
+    @ColumnInfo(defaultValue = "''")
     val syncedTransactionIds: String = "",
     val occurredAt: Long,
     val createdAt: Long = System.currentTimeMillis()

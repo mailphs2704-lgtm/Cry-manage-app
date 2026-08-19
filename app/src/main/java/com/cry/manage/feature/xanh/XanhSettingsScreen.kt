@@ -2,7 +2,9 @@ package com.cry.manage.feature.xanh
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -199,7 +201,7 @@ fun XanhSettingsScreen(
 }
 
 @Composable
-private fun SectionCard(title: String, content: @Composable Column.() -> Unit) {
+private fun SectionCard(title: String, content: @Composable ColumnScope.() -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
@@ -280,7 +282,7 @@ private fun PointsRow(
 }
 
 @Composable
-private fun Row.PointField(label: String, value: Int, onChange: (Int) -> Unit) {
+private fun RowScope.PointField(label: String, value: Int, onChange: (Int) -> Unit) {
     OutlinedTextField(
         value = value.toString(),
         onValueChange = { text -> text.toIntOrNull()?.let(onChange) },

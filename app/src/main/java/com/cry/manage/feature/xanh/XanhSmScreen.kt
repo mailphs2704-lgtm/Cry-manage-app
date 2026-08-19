@@ -88,9 +88,7 @@ fun XanhSmScreen(
     var deletingTrip by remember { mutableStateOf<XanhTrip?>(null) }
     var weekOffset by remember { mutableIntStateOf(0) }
 
-    BackHandler(enabled = showSettings) {
-        showSettings = false
-    }
+    BackHandler(enabled = showSettings) { showSettings = false }
 
     if (showSettings) {
         XanhSettingsScreen(
@@ -100,6 +98,9 @@ fun XanhSmScreen(
         )
         return
     }
+
+    val todayKey = dayKey(System.currentTimeMillis())
+    val todayTrips = trips.filter { dayKey(it.occurredAt) == todayKey }
 
     val weekRange = remember(weekOffset) { weekRange(weekOffset) }
     val weekTrips = trips.filter { it.occurredAt in weekRange.first..weekRange.second }
@@ -153,6 +154,7 @@ fun XanhSmScreen(
                     .padding(horizontal = 18.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                item { TodayOverviewCard(todayTrips) }
                 item { WeekNavigation(weekOffset, weekRange) { weekOffset += it } }
 
                 item {
@@ -265,6 +267,48 @@ fun XanhSmScreen(
 }
 
 @Composable
+private fun TodayOverviewCard(trips: List<XanhTrip>) {
+    val revenue = trips.sumOf { it.revenue }
+    val net = trips.sumOf { it.netIncome }
+    val tips = trips.sumOf { it.tips }
+    val points = trips.sumOf { it.points }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.94f))
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Hôm nay • ${formatDate(System.currentTimeMillis())}", color = PointGold, fontWeight = FontWeight.Bold)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.weight(1f)) {
+                    Text("Chuyến", color = CryMuted, fontSize = 11.sp)
+                    Text(trips.size.toString(), color = CryText, fontWeight = FontWeight.Bold)
+                }
+                Column(Modifier.weight(1f)) {
+                    Text("Điểm", color = CryMuted, fontSize = 11.sp)
+                    Text(points.toString(), color = PointGold, fontWeight = FontWeight.Bold)
+                }
+                Column(Modifier.weight(1f)) {
+                    Text("Doanh số", color = CryMuted, fontSize = 11.sp)
+                    Text(formatCurrency(revenue), color = CryText, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                }
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.weight(1f)) {
+                    Text("Thực thu", color = CryMuted, fontSize = 11.sp)
+                    Text(formatCurrency(net), color = XanhGreen, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                }
+                Column(Modifier.weight(1f)) {
+                    Text("Tips", color = CryMuted, fontSize = 11.sp)
+                    Text("+${formatCurrency(tips)}", color = TipPurple, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun WeekNavigation(weekOffset: Int, range: Pair<Long, Long>, onMove: (Int) -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -327,29 +371,47 @@ private fun MilestoneCard(
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.94f))
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("Tiến độ thưởng tuần", color = CryText, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(6.dp))
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Mốc & tiến độ thưởng tuần", color = CryText, fontWeight = FontWeight.Bold)
             Text("$totalPoints điểm • đã đạt ${formatCurrency(achievedReward)}", color = PointGold, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(10.dp))
             LinearProgressIndicator(
                 progress = { progress },
                 modifier = Modifier.fillMaxWidth(),
                 color = PointGold
             )
-            Spacer(Modifier.height(8.dp))
             Text(
                 if (nextMilestone == null) "Đã đạt mốc thưởng cao nhất"
                 else "Còn ${nextMilestone.points - totalPoints} điểm để đạt ${formatCurrency(nextMilestone.reward)}",
                 color = CryMuted,
                 fontSize = 12.sp
             )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                milestones.joinToString("  •  ") { "${it.points}đ → ${formatCurrency(it.reward)}" },
-                color = CryMuted,
-                fontSize = 11.sp
-            )
+
+            milestones.forEach { milestone ->
+                val achieved = totalPoints >= milestone.points
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (achieved) XanhSoft else Color.White.copy(alpha = 0.82f)
+                    ),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Mốc ${milestone.points} điểm", color = CryText, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text("Thưởng ${formatCurrency(milestone.reward)}", color = PointGold, fontSize = 12.sp)
+                        }
+                        Text(
+                            if (achieved) "ĐÃ ĐẠT" else "THIẾU ${max(milestone.points - totalPoints, 0)}Đ",
+                            color = if (achieved) XanhGreen else PointGold,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -493,25 +555,13 @@ private fun AddTripDialog(
                 item { Text("Khung giờ • tự tính điểm", color = CryMuted, fontSize = 12.sp) }
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        ChoiceButton(
-                            XanhSmRules.slotLabel(settings, XanhTrip.SLOT_MORNING),
-                            XanhTrip.SLOT_MORNING,
-                            timeSlot
-                        ) { timeSlot = it }
-                        ChoiceButton(
-                            XanhSmRules.slotLabel(settings, XanhTrip.SLOT_NOON),
-                            XanhTrip.SLOT_NOON,
-                            timeSlot
-                        ) { timeSlot = it }
+                        ChoiceButton(XanhSmRules.slotLabel(settings, XanhTrip.SLOT_MORNING), XanhTrip.SLOT_MORNING, timeSlot) { timeSlot = it }
+                        ChoiceButton(XanhSmRules.slotLabel(settings, XanhTrip.SLOT_NOON), XanhTrip.SLOT_NOON, timeSlot) { timeSlot = it }
                     }
                 }
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        ChoiceButton(
-                            XanhSmRules.slotLabel(settings, XanhTrip.SLOT_AFTERNOON),
-                            XanhTrip.SLOT_AFTERNOON,
-                            timeSlot
-                        ) { timeSlot = it }
+                        ChoiceButton(XanhSmRules.slotLabel(settings, XanhTrip.SLOT_AFTERNOON), XanhTrip.SLOT_AFTERNOON, timeSlot) { timeSlot = it }
                         ChoiceButton("Ngoài giờ", XanhTrip.SLOT_OFFPEAK, timeSlot) { timeSlot = it }
                     }
                 }
@@ -609,9 +659,7 @@ private fun ChoiceButton(label: String, value: String, selected: String, onSelec
             containerColor = if (selected == value) XanhGreen else XanhSoft,
             contentColor = if (selected == value) Color.White else XanhGreen
         )
-    ) {
-        Text(label, fontSize = 10.sp)
-    }
+    ) { Text(label, fontSize = 10.sp) }
 }
 
 @Composable
@@ -626,9 +674,7 @@ private fun WalletPicker(
     Column {
         Text(label, color = CryMuted, fontSize = 12.sp)
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onExpandedChange(true) },
+            modifier = Modifier.fillMaxWidth().clickable { onExpandedChange(true) },
             colors = CardDefaults.cardColors(containerColor = XanhSoft)
         ) {
             Text(selectedWallet?.name ?: "Chọn ví", modifier = Modifier.padding(12.dp), color = CryText)

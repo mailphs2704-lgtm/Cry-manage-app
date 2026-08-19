@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import com.cry.manage.data.AppDatabase
 import com.cry.manage.data.model.Transaction
 import com.cry.manage.data.model.Wallet
+import com.cry.manage.data.model.XanhSettingsVersion
 import com.cry.manage.data.model.XanhTrip
 import com.cry.manage.feature.xanh.XanhSmRules
 import kotlinx.coroutines.flow.Flow
@@ -14,9 +15,21 @@ class XanhTripRepository(
     private val tripDao = database.xanhTripDao()
     private val walletDao = database.walletDao()
     private val transactionDao = database.transactionDao()
+    private val settingsDao = database.xanhSettingsDao()
 
     fun getTrips(): Flow<List<XanhTrip>> = tripDao.getAll()
     fun getWallets(): Flow<List<Wallet>> = walletDao.getAllWallets()
+    fun getSettings(): Flow<XanhSettingsVersion?> = settingsDao.getLatest()
+
+    suspend fun saveSettings(settings: XanhSettingsVersion) {
+        validateSettings(settings)
+        settingsDao.insert(
+            settings.copy(
+                id = 0,
+                effectiveFrom = System.currentTimeMillis()
+            )
+        )
+    }
 
     suspend fun addTrip(
         serviceType: String,
@@ -43,9 +56,10 @@ class XanhTripRepository(
             timeSlot = timeSlot
         )
 
+        val settings = settingsDao.getLatestOnce() ?: XanhSmRules.defaultSettings
         val discountAmount = revenue - netIncome
         val discountPercent = if (revenue > 0) discountAmount / revenue * 100.0 else 0.0
-        val points = XanhSmRules.pointsFor(serviceType, timeSlot)
+        val points = XanhSmRules.pointsFor(settings, serviceType, timeSlot)
 
         database.withTransaction {
             val driver = walletDao.getWalletById(driverWallet.id)
@@ -136,6 +150,29 @@ class XanhTripRepository(
 
             tripDao.delete(trip)
         }
+    }
+
+    private fun validateSettings(settings: XanhSettingsVersion) {
+        fun validTime(value: String): Boolean = Regex("^(?:[01]\\d|2[0-3]):[0-5]\\d$").matches(value)
+        require(validTime(settings.morningStart) && validTime(settings.morningEnd)) { "Khung giờ sáng không hợp lệ" }
+        require(validTime(settings.noonStart) && validTime(settings.noonEnd)) { "Khung giờ trưa không hợp lệ" }
+        require(validTime(settings.afternoonStart) && validTime(settings.afternoonEnd)) { "Khung giờ chiều không hợp lệ" }
+
+        val allPoints = listOf(
+            settings.morningBike, settings.morningFast, settings.morning2h, settings.morningFood,
+            settings.noonBike, settings.noonFast, settings.noon2h, settings.noonFood,
+            settings.afternoonBike, settings.afternoonFast, settings.afternoon2h, settings.afternoonFood,
+            settings.offpeakBike, settings.offpeakFast, settings.offpeak2h, settings.offpeakFood
+        )
+        require(allPoints.all { it >= 0 }) { "Điểm dịch vụ không được âm" }
+
+        val milestones = listOf(
+            settings.milestone1Points to settings.milestone1Reward,
+            settings.milestone2Points to settings.milestone2Reward,
+            settings.milestone3Points to settings.milestone3Reward
+        )
+        require(milestones.all { it.first > 0 && it.second >= 0 }) { "Mốc thưởng không hợp lệ" }
+        require(milestones.map { it.first }.distinct().size == milestones.size) { "Mốc điểm không được trùng" }
     }
 
     private fun validateTrip(

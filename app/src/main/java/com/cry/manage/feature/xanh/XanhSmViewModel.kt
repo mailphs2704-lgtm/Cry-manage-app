@@ -30,28 +30,40 @@ class XanhSmViewModel(application: Application) : AndroidViewModel(application) 
     )
 
     fun addTrip(
+        serviceType: String,
         revenue: Double,
         netIncome: Double,
+        tips: Double,
         promotion: Double,
+        foodCost: Double,
         paymentType: String,
         timeSlot: String,
-        points: Int,
+        note: String,
         driverWallet: Wallet,
         receiveWallet: Wallet?,
         occurredAt: Long
     ) {
         viewModelScope.launch {
             repository.addTrip(
+                serviceType = serviceType,
                 revenue = revenue,
                 netIncome = netIncome,
+                tips = tips,
                 promotion = promotion,
+                foodCost = foodCost,
                 paymentType = paymentType,
                 timeSlot = timeSlot,
-                points = points,
+                note = note,
                 driverWallet = driverWallet,
                 receiveWallet = receiveWallet,
                 occurredAt = occurredAt
             )
+        }
+    }
+
+    fun deleteTrip(trip: XanhTrip) {
+        viewModelScope.launch {
+            repository.deleteTrip(trip)
         }
     }
 }

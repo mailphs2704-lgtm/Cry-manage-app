@@ -27,7 +27,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -55,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cry.manage.data.model.Wallet
+import com.cry.manage.ui.components.ProjectBackground
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -79,44 +79,21 @@ fun WalletScreen(
     val totalBalance = wallets.sumOf { it.balance }
     val availableBalance = wallets.filter { it.isAvailable }.sumOf { it.balance }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(Color.White, CrySoft)
-                )
-            )
-    ) {
+    ProjectBackground {
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {
                 TopAppBar(
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent
-                    ),
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowBack,
-                                contentDescription = "Quay lại",
-                                tint = CryRed
-                            )
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Quay lại", tint = CryRed)
                         }
                     },
                     title = {
                         Column {
-                            Text(
-                                text = "Quản lý ví",
-                                color = CryText,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 21.sp
-                            )
-                            Text(
-                                text = "Số dư và trạng thái ví",
-                                color = CryMuted,
-                                fontSize = 12.sp
-                            )
+                            Text("Quản lý ví", color = CryText, fontWeight = FontWeight.Bold, fontSize = 21.sp)
+                            Text("Số dư và trạng thái ví", color = CryMuted, fontSize = 12.sp)
                         }
                     }
                 )
@@ -125,8 +102,7 @@ fun WalletScreen(
                 FloatingActionButton(
                     onClick = { showAddDialog = true },
                     containerColor = CryRed,
-                    contentColor = Color.White,
-                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 5.dp)
+                    contentColor = Color.White
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Thêm ví")
                 }
@@ -139,27 +115,18 @@ fun WalletScreen(
                     .padding(horizontal = 18.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                item { Spacer(Modifier.height(2.dp)) }
-
                 item {
-                    WalletBalanceHero(
-                        totalBalance = totalBalance,
-                        availableBalance = availableBalance,
-                        walletCount = wallets.size
-                    )
+                    WalletBalanceHero(totalBalance, availableBalance, wallets.size)
                 }
 
                 item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = "Danh sách ví",
                             modifier = Modifier.weight(1f),
                             color = CryText,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium
                         )
                         Text(
                             text = "${wallets.count { it.isAvailable }}/${wallets.size} khả dụng",
@@ -174,20 +141,12 @@ fun WalletScreen(
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(22.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White)
+                            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.94f))
                         ) {
                             Column(modifier = Modifier.padding(20.dp)) {
-                                Text(
-                                    text = "Chưa có ví nào",
-                                    color = CryText,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Text("Chưa có ví nào", color = CryText, fontWeight = FontWeight.Bold)
                                 Spacer(Modifier.height(5.dp))
-                                Text(
-                                    text = "Nhấn nút + để tạo ví đầu tiên.",
-                                    color = CryMuted,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
+                                Text("Nhấn + để tạo ví đầu tiên.", color = CryMuted)
                             }
                         }
                     }
@@ -195,9 +154,7 @@ fun WalletScreen(
                     items(wallets, key = { it.id }) { wallet ->
                         WalletItem(
                             wallet = wallet,
-                            onAvailabilityChanged = { available ->
-                                viewModel.updateAvailability(wallet.id, available)
-                            },
+                            onAvailabilityChanged = { viewModel.updateAvailability(wallet.id, it) },
                             onEdit = { editingWallet = wallet },
                             onDelete = { deletingWallet = wallet },
                             onUpdateBalance = { balanceEditingWallet = wallet }
@@ -216,12 +173,7 @@ fun WalletScreen(
             initialWallet = null,
             onDismiss = { showAddDialog = false },
             onConfirm = { name, description, balance, available ->
-                viewModel.addWallet(
-                    name = name,
-                    description = description,
-                    balance = balance,
-                    isAvailable = available
-                )
+                viewModel.addWallet(name, description, balance, available)
                 showAddDialog = false
             }
         )
@@ -260,16 +212,8 @@ fun WalletScreen(
     deletingWallet?.let { wallet ->
         AlertDialog(
             onDismissRequest = { deletingWallet = null },
-            title = {
-                Text(
-                    text = "Xóa ví?",
-                    color = CryText,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Text("Bạn có chắc muốn xóa ví \"${wallet.name}\" không?")
-            },
+            title = { Text("Xóa ví?", color = CryText, fontWeight = FontWeight.Bold) },
+            text = { Text("Bạn có chắc muốn xóa ví \"${wallet.name}\" không?") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -298,31 +242,17 @@ private fun WalletBalanceHero(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(CryRed, CryRedDark)
-                    )
-                )
+                .background(Brush.linearGradient(listOf(CryRed, CryRedDark)))
                 .padding(22.dp)
         ) {
-            Text(
-                text = "Tổng số dư",
-                color = Color.White.copy(alpha = 0.82f),
-                fontSize = 13.sp
-            )
+            Text("Tổng số dư", color = Color.White.copy(alpha = 0.82f), fontSize = 13.sp)
             Spacer(Modifier.height(5.dp))
-            Text(
-                text = formatCurrency(totalBalance),
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontSize = 29.sp
-            )
+            Text(formatCurrency(totalBalance), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 29.sp)
             Spacer(Modifier.height(18.dp))
             Row(
                 modifier = Modifier
@@ -333,22 +263,10 @@ private fun WalletBalanceHero(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Khả dụng",
-                        color = Color.White.copy(alpha = 0.74f),
-                        fontSize = 11.sp
-                    )
-                    Text(
-                        text = formatCurrency(availableBalance),
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text("Khả dụng", color = Color.White.copy(alpha = 0.74f), fontSize = 11.sp)
+                    Text(formatCurrency(availableBalance), color = Color.White, fontWeight = FontWeight.Bold)
                 }
-                Text(
-                    text = "$walletCount ví",
-                    color = Color.White.copy(alpha = 0.82f),
-                    fontWeight = FontWeight.SemiBold
-                )
+                Text("$walletCount ví", color = Color.White.copy(alpha = 0.82f))
             }
         }
     }
@@ -365,14 +283,10 @@ private fun WalletItem(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.94f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
                         .size(46.dp)
@@ -380,11 +294,7 @@ private fun WalletItem(
                         .background(CrySoft),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.AccountBalanceWallet,
-                        contentDescription = null,
-                        tint = CryRed
-                    )
+                    Icon(Icons.Default.AccountBalanceWallet, contentDescription = null, tint = CryRed)
                 }
 
                 Column(
@@ -392,18 +302,9 @@ private fun WalletItem(
                         .weight(1f)
                         .padding(start = 12.dp)
                 ) {
-                    Text(
-                        text = wallet.name,
-                        color = CryText,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text(wallet.name, color = CryText, fontWeight = FontWeight.Bold)
                     if (wallet.description.isNotBlank()) {
-                        Spacer(Modifier.height(2.dp))
-                        Text(
-                            text = wallet.description,
-                            color = CryMuted,
-                            style = MaterialTheme.typography.bodySmall
-                        )
+                        Text(wallet.description, color = CryMuted, fontSize = 12.sp)
                     }
                 }
 
@@ -419,44 +320,19 @@ private fun WalletItem(
 
             Spacer(Modifier.height(14.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Số dư",
-                        color = CryMuted,
-                        fontSize = 11.sp
-                    )
-                    Text(
-                        text = formatCurrency(wallet.balance),
-                        color = CryText,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
-                    )
+                    Text("Số dư", color = CryMuted, fontSize = 11.sp)
+                    Text(formatCurrency(wallet.balance), color = CryText, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 }
-
                 IconButton(onClick = onUpdateBalance) {
-                    Icon(
-                        imageVector = Icons.Default.Payments,
-                        contentDescription = "Cập nhật số dư",
-                        tint = CryRed
-                    )
+                    Icon(Icons.Default.Payments, contentDescription = "Cập nhật số dư", tint = CryRed)
                 }
                 IconButton(onClick = onEdit) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Sửa",
-                        tint = CryMuted
-                    )
+                    Icon(Icons.Default.Edit, contentDescription = "Sửa", tint = CryMuted)
                 }
                 IconButton(onClick = onDelete) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Xóa",
-                        tint = CryRed
-                    )
+                    Icon(Icons.Default.Delete, contentDescription = "Xóa", tint = CryRed)
                 }
             }
         }
@@ -469,52 +345,33 @@ private fun UpdateBalanceDialog(
     onDismiss: () -> Unit,
     onConfirm: (Double) -> Unit
 ) {
-    var balanceText by remember(wallet) {
-        mutableStateOf(wallet.balance.toString())
-    }
+    var balanceText by remember(wallet) { mutableStateOf(wallet.balance.toLong().toString()) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = "Cập nhật số dư",
-                color = CryText,
-                fontWeight = FontWeight.Bold
-            )
-        },
+        title = { Text("Cập nhật số dư", color = CryText, fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(
-                    text = wallet.name,
-                    color = CryRed,
-                    fontWeight = FontWeight.Bold
-                )
+                Text(wallet.name, color = CryRed, fontWeight = FontWeight.Bold)
                 OutlinedTextField(
                     value = balanceText,
                     onValueChange = { balanceText = it },
                     label = { Text("Số dư mới") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
                 )
             }
         },
         confirmButton = {
             TextButton(
                 onClick = {
-                    val newBalance = balanceText
-                        .replace(",", "")
-                        .replace(".", "")
-                        .toDoubleOrNull()
+                    val newBalance = balanceText.replace(",", "").replace(".", "").toDoubleOrNull()
                     if (newBalance != null) onConfirm(newBalance)
                 }
-            ) {
-                Text("LƯU", color = CryRed, fontWeight = FontWeight.Bold)
-            }
+            ) { Text("LƯU", color = CryRed, fontWeight = FontWeight.Bold) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("HỦY", color = CryMuted)
-            }
+            TextButton(onClick = onDismiss) { Text("HỦY", color = CryMuted) }
         }
     )
 }
@@ -526,28 +383,14 @@ private fun WalletDialog(
     onDismiss: () -> Unit,
     onConfirm: (String, String, Double, Boolean) -> Unit
 ) {
-    var name by remember(initialWallet) {
-        mutableStateOf(initialWallet?.name ?: "")
-    }
-    var description by remember(initialWallet) {
-        mutableStateOf(initialWallet?.description ?: "")
-    }
-    var balanceText by remember(initialWallet) {
-        mutableStateOf(initialWallet?.balance?.toString() ?: "0")
-    }
-    var isAvailable by remember(initialWallet) {
-        mutableStateOf(initialWallet?.isAvailable ?: true)
-    }
+    var name by remember(initialWallet) { mutableStateOf(initialWallet?.name ?: "") }
+    var description by remember(initialWallet) { mutableStateOf(initialWallet?.description ?: "") }
+    var balanceText by remember(initialWallet) { mutableStateOf(initialWallet?.balance?.toLong()?.toString() ?: "0") }
+    var isAvailable by remember(initialWallet) { mutableStateOf(initialWallet?.isAvailable ?: true) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = title,
-                color = CryText,
-                fontWeight = FontWeight.Bold
-            )
-        },
+        title = { Text(title, color = CryText, fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
@@ -570,22 +413,8 @@ private fun WalletDialog(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Ví khả dụng",
-                            color = CryText,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = "Được dùng cho các chức năng tài chính",
-                            color = CryMuted,
-                            fontSize = 11.sp
-                        )
-                    }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Khả dụng", modifier = Modifier.weight(1f), color = CryText)
                     Switch(
                         checked = isAvailable,
                         onCheckedChange = { isAvailable = it },
@@ -600,28 +429,15 @@ private fun WalletDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val balance = balanceText
-                        .replace(",", "")
-                        .replace(".", "")
-                        .toDoubleOrNull()
-                        ?: 0.0
+                    val balance = balanceText.replace(",", "").replace(".", "").toDoubleOrNull() ?: 0.0
                     if (name.isNotBlank()) {
-                        onConfirm(
-                            name.trim(),
-                            description.trim(),
-                            balance,
-                            isAvailable
-                        )
+                        onConfirm(name.trim(), description.trim(), balance, isAvailable)
                     }
                 }
-            ) {
-                Text("Lưu")
-            }
+            ) { Text("Lưu") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Hủy", color = CryMuted)
-            }
+            TextButton(onClick = onDismiss) { Text("Hủy", color = CryMuted) }
         }
     )
 }

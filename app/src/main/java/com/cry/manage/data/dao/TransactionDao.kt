@@ -14,6 +14,9 @@ interface TransactionDao {
     @Insert
     suspend fun insert(transaction: Transaction): Long
 
+    @Query("DELETE FROM transactions WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: List<Long>)
+
     @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE type = :type AND occurredAt BETWEEN :start AND :end")
     fun getTotalByTypeBetween(type: String, start: Long, end: Long): Flow<Double>
 }

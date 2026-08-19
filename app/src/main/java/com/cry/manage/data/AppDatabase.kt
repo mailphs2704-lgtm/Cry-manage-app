@@ -19,7 +19,7 @@ import com.cry.manage.data.model.XanhTrip
 
 @Database(
     entities = [Wallet::class, Transaction::class, PlannedItem::class, XanhTrip::class, XanhSettingsVersion::class],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -31,14 +31,12 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun xanhSettingsDao(): XanhSettingsDao
 
     companion object {
-
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL(
-                    """
+                db.execSQL("""
                     CREATE TABLE IF NOT EXISTS transactions (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         walletId INTEGER NOT NULL,
@@ -48,15 +46,13 @@ abstract class AppDatabase : RoomDatabase() {
                         note TEXT NOT NULL,
                         occurredAt INTEGER NOT NULL
                     )
-                    """.trimIndent()
-                )
+                """.trimIndent())
             }
         }
 
         private val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL(
-                    """
+                db.execSQL("""
                     CREATE TABLE IF NOT EXISTS planned_items (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         type TEXT NOT NULL,
@@ -67,15 +63,13 @@ abstract class AppDatabase : RoomDatabase() {
                         note TEXT NOT NULL,
                         createdAt INTEGER NOT NULL
                     )
-                    """.trimIndent()
-                )
+                """.trimIndent())
             }
         }
 
         private val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL(
-                    """
+                db.execSQL("""
                     CREATE TABLE IF NOT EXISTS xanh_trips (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         revenue REAL NOT NULL,
@@ -93,8 +87,7 @@ abstract class AppDatabase : RoomDatabase() {
                         occurredAt INTEGER NOT NULL,
                         createdAt INTEGER NOT NULL
                     )
-                    """.trimIndent()
-                )
+                """.trimIndent())
             }
         }
 
@@ -110,8 +103,7 @@ abstract class AppDatabase : RoomDatabase() {
 
         private val MIGRATION_5_6 = object : Migration(5, 6) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL(
-                    """
+                db.execSQL("""
                     CREATE TABLE IF NOT EXISTS xanh_settings_versions (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         effectiveFrom INTEGER NOT NULL,
@@ -144,10 +136,8 @@ abstract class AppDatabase : RoomDatabase() {
                         milestone3Points INTEGER NOT NULL,
                         milestone3Reward REAL NOT NULL
                     )
-                    """.trimIndent()
-                )
-                db.execSQL(
-                    """
+                """.trimIndent())
+                db.execSQL("""
                     INSERT INTO xanh_settings_versions (
                         effectiveFrom, morningStart, morningEnd, noonStart, noonEnd, afternoonStart, afternoonEnd,
                         morningBike, morningFast, morning2h, morningFood,
@@ -163,8 +153,21 @@ abstract class AppDatabase : RoomDatabase() {
                         1, 2, 1, 1,
                         50, 50000, 100, 150000, 150, 300000
                     )
-                    """.trimIndent()
-                )
+                """.trimIndent())
+            }
+        }
+
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE xanh_settings_versions ADD COLUMN milestonesData TEXT NOT NULL DEFAULT ''")
+                db.execSQL("""
+                    UPDATE xanh_settings_versions
+                    SET milestonesData =
+                        CAST(milestone1Points AS TEXT) || ':' || CAST(CAST(milestone1Reward AS INTEGER) AS TEXT) || '|' ||
+                        CAST(milestone2Points AS TEXT) || ':' || CAST(CAST(milestone2Reward AS INTEGER) AS TEXT) || '|' ||
+                        CAST(milestone3Points AS TEXT) || ':' || CAST(CAST(milestone3Reward AS INTEGER) AS TEXT)
+                    WHERE milestonesData = ''
+                """.trimIndent())
             }
         }
 
@@ -175,7 +178,14 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "cry_manage_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                    .addMigrations(
+                        MIGRATION_1_2,
+                        MIGRATION_2_3,
+                        MIGRATION_3_4,
+                        MIGRATION_4_5,
+                        MIGRATION_5_6,
+                        MIGRATION_6_7
+                    )
                     .build()
 
                 INSTANCE = instance

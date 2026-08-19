@@ -29,7 +29,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -48,7 +47,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -56,6 +54,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cry.manage.data.model.Transaction
 import com.cry.manage.data.model.Wallet
+import com.cry.manage.ui.components.ProjectBackground
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -78,51 +77,24 @@ fun TransactionScreen(
     val wallets by viewModel.wallets.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
 
-    val totalIncome = transactions
-        .filter { it.type == Transaction.TYPE_INCOME }
-        .sumOf { it.amount }
-    val totalExpense = transactions
-        .filter { it.type == Transaction.TYPE_EXPENSE }
-        .sumOf { it.amount }
+    val totalIncome = transactions.filter { it.type == Transaction.TYPE_INCOME }.sumOf { it.amount }
+    val totalExpense = transactions.filter { it.type == Transaction.TYPE_EXPENSE }.sumOf { it.amount }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(Color.White, CrySoft)
-                )
-            )
-    ) {
+    ProjectBackground {
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {
                 TopAppBar(
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent
-                    ),
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(
-                                Icons.Default.ArrowBack,
-                                contentDescription = "Quay lại",
-                                tint = CryRed
-                            )
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Quay lại", tint = CryRed)
                         }
                     },
                     title = {
                         Column {
-                            Text(
-                                text = "Quản lý thu chi",
-                                color = CryText,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 21.sp
-                            )
-                            Text(
-                                text = "Theo dõi dòng tiền thực tế",
-                                color = CryMuted,
-                                fontSize = 12.sp
-                            )
+                            Text("Quản lý thu chi", color = CryText, fontWeight = FontWeight.Bold, fontSize = 21.sp)
+                            Text("Theo dõi dòng tiền thực tế", color = CryMuted, fontSize = 12.sp)
                         }
                     }
                 )
@@ -131,8 +103,7 @@ fun TransactionScreen(
                 FloatingActionButton(
                     onClick = { showAddDialog = true },
                     containerColor = CryRed,
-                    contentColor = Color.White,
-                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 5.dp)
+                    contentColor = Color.White
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Thêm giao dịch")
                 }
@@ -145,25 +116,13 @@ fun TransactionScreen(
                     .padding(horizontal = 18.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                item { Spacer(Modifier.height(2.dp)) }
-
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        SummaryCard(
-                            modifier = Modifier.weight(1f),
-                            title = "Tổng thu",
-                            amount = totalIncome,
-                            positive = true
-                        )
-                        SummaryCard(
-                            modifier = Modifier.weight(1f),
-                            title = "Tổng chi",
-                            amount = totalExpense,
-                            positive = false
-                        )
+                        SummaryCard(Modifier.weight(1f), "Tổng thu", totalIncome, IncomeGreen, IncomeSoft, true)
+                        SummaryCard(Modifier.weight(1f), "Tổng chi", totalExpense, CryRed, CrySoft, false)
                     }
                 }
 
@@ -181,20 +140,12 @@ fun TransactionScreen(
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(22.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White)
+                            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.94f))
                         ) {
                             Column(modifier = Modifier.padding(20.dp)) {
-                                Text(
-                                    text = "Chưa có giao dịch nào",
-                                    color = CryText,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Text("Chưa có giao dịch nào", color = CryText, fontWeight = FontWeight.Bold)
                                 Spacer(Modifier.height(5.dp))
-                                Text(
-                                    text = "Nhấn nút + để nhập khoản thu hoặc chi.",
-                                    color = CryMuted,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
+                                Text("Nhấn + để nhập khoản thu hoặc chi.", color = CryMuted)
                             }
                         }
                     }
@@ -226,16 +177,14 @@ private fun SummaryCard(
     modifier: Modifier,
     title: String,
     amount: Double,
-    positive: Boolean
+    accent: Color,
+    soft: Color,
+    income: Boolean
 ) {
-    val accent = if (positive) IncomeGreen else CryRed
-    val soft = if (positive) IncomeSoft else CrySoft
-
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.94f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Box(
@@ -246,25 +195,14 @@ private fun SummaryCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = if (positive) Icons.Default.SouthWest else Icons.Default.NorthEast,
+                    imageVector = if (income) Icons.Default.SouthWest else Icons.Default.NorthEast,
                     contentDescription = null,
-                    tint = accent,
-                    modifier = Modifier.size(21.dp)
+                    tint = accent
                 )
             }
             Spacer(Modifier.height(10.dp))
-            Text(
-                text = title,
-                color = CryMuted,
-                fontSize = 12.sp
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = formatCurrency(amount),
-                color = accent,
-                fontWeight = FontWeight.Bold,
-                fontSize = 17.sp
-            )
+            Text(title, color = CryMuted, fontSize = 12.sp)
+            Text(formatCurrency(amount), color = accent, fontWeight = FontWeight.Bold, fontSize = 17.sp)
         }
     }
 }
@@ -278,8 +216,7 @@ private fun TransactionItem(transaction: Transaction) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.94f))
     ) {
         Row(
             modifier = Modifier
@@ -306,23 +243,10 @@ private fun TransactionItem(transaction: Transaction) {
                     .weight(1f)
                     .padding(start = 12.dp)
             ) {
-                Text(
-                    text = if (isIncome) "Khoản thu" else "Khoản chi",
-                    color = CryText,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = transaction.walletName,
-                    color = CryMuted,
-                    style = MaterialTheme.typography.bodySmall
-                )
+                Text(if (isIncome) "Khoản thu" else "Khoản chi", color = CryText, fontWeight = FontWeight.Bold)
+                Text(transaction.walletName, color = CryMuted, fontSize = 12.sp)
                 if (transaction.note.isNotBlank()) {
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text = transaction.note,
-                        color = CryMuted,
-                        style = MaterialTheme.typography.bodySmall
-                    )
+                    Text(transaction.note, color = CryMuted, fontSize = 12.sp)
                 }
             }
 
@@ -332,12 +256,7 @@ private fun TransactionItem(transaction: Transaction) {
                     color = accent,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(Modifier.height(3.dp))
-                Text(
-                    text = formatDate(transaction.occurredAt),
-                    color = CryMuted,
-                    fontSize = 11.sp
-                )
+                Text(formatDate(transaction.occurredAt), color = CryMuted, fontSize = 11.sp)
             }
         }
     }
@@ -359,13 +278,7 @@ private fun AddTransactionDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = "Thêm giao dịch",
-                color = CryText,
-                fontWeight = FontWeight.Bold
-            )
-        },
+        title = { Text("Thêm giao dịch", color = CryText, fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(
@@ -391,44 +304,30 @@ private fun AddTransactionDialog(
                 }
 
                 if (wallets.isEmpty()) {
-                    Text(
-                        text = "Bạn cần tạo ít nhất một ví trước khi nhập giao dịch.",
-                        color = CryRed
-                    )
+                    Text("Bạn cần tạo ít nhất một ví trước.", color = CryRed)
                 } else {
-                    Column {
-                        Text(
-                            text = "Ví phát sinh",
-                            color = CryMuted,
-                            fontSize = 12.sp
-                        )
-                        Spacer(Modifier.height(5.dp))
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { walletMenuExpanded = true },
-                            shape = RoundedCornerShape(14.dp),
-                            colors = CardDefaults.cardColors(containerColor = CrySoft)
-                        ) {
-                            Text(
-                                text = selectedWallet?.name ?: "Chọn ví",
-                                color = CryText,
-                                modifier = Modifier.padding(13.dp)
+                    Text("Ví phát sinh", color = CryMuted, fontSize = 12.sp)
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { walletMenuExpanded = true },
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = CrySoft)
+                    ) {
+                        Text(selectedWallet?.name ?: "Chọn ví", modifier = Modifier.padding(13.dp))
+                    }
+                    DropdownMenu(
+                        expanded = walletMenuExpanded,
+                        onDismissRequest = { walletMenuExpanded = false }
+                    ) {
+                        wallets.forEach { wallet ->
+                            DropdownMenuItem(
+                                text = { Text(wallet.name) },
+                                onClick = {
+                                    selectedWallet = wallet
+                                    walletMenuExpanded = false
+                                }
                             )
-                        }
-                        DropdownMenu(
-                            expanded = walletMenuExpanded,
-                            onDismissRequest = { walletMenuExpanded = false }
-                        ) {
-                            wallets.forEach { wallet ->
-                                DropdownMenuItem(
-                                    text = { Text(wallet.name) },
-                                    onClick = {
-                                        selectedWallet = wallet
-                                        walletMenuExpanded = false
-                                    }
-                                )
-                            }
                         }
                     }
                 }
@@ -453,9 +352,7 @@ private fun AddTransactionDialog(
                     label = { Text("Ghi chú") },
                     modifier = Modifier.fillMaxWidth()
                 )
-                errorText?.let {
-                    Text(text = it, color = CryRed, fontSize = 12.sp)
-                }
+                errorText?.let { Text(it, color = CryRed, fontSize = 12.sp) }
             }
         },
         confirmButton = {
@@ -472,14 +369,10 @@ private fun AddTransactionDialog(
                         else -> onConfirm(wallet, type, amount, note.trim(), occurredAt)
                     }
                 }
-            ) {
-                Text("LƯU", color = CryRed, fontWeight = FontWeight.Bold)
-            }
+            ) { Text("LƯU", color = CryRed, fontWeight = FontWeight.Bold) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("HỦY", color = CryMuted)
-            }
+            TextButton(onClick = onDismiss) { Text("HỦY", color = CryMuted) }
         }
     )
 }
@@ -494,9 +387,7 @@ private fun formatDate(timestamp: Long): String =
     SimpleDateFormat("dd/MM/yyyy", Locale("vi", "VN")).format(Date(timestamp))
 
 private fun parseDate(value: String): Long? = try {
-    SimpleDateFormat("dd/MM/yyyy", Locale("vi", "VN")).apply {
-        isLenient = false
-    }.parse(value)?.time
+    SimpleDateFormat("dd/MM/yyyy", Locale("vi", "VN")).apply { isLenient = false }.parse(value)?.time
 } catch (_: Exception) {
     null
 }

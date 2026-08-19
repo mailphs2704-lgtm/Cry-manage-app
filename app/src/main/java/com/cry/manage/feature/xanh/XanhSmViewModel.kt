@@ -5,10 +5,12 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.cry.manage.data.AppDatabase
 import com.cry.manage.data.model.Wallet
+import com.cry.manage.data.model.XanhSettingsVersion
 import com.cry.manage.data.model.XanhTrip
 import com.cry.manage.data.repository.XanhTripRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -28,6 +30,20 @@ class XanhSmViewModel(application: Application) : AndroidViewModel(application) 
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = emptyList()
     )
+
+    val settings: StateFlow<XanhSettingsVersion> = repository.getSettings()
+        .map { it ?: XanhSmRules.defaultSettings }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = XanhSmRules.defaultSettings
+        )
+
+    fun saveSettings(settings: XanhSettingsVersion) {
+        viewModelScope.launch {
+            repository.saveSettings(settings)
+        }
+    }
 
     fun addTrip(
         serviceType: String,

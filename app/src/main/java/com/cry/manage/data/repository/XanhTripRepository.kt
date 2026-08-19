@@ -154,9 +154,28 @@ class XanhTripRepository(
 
     private fun validateSettings(settings: XanhSettingsVersion) {
         fun validTime(value: String): Boolean = Regex("^(?:[01]\\d|2[0-3]):[0-5]\\d$").matches(value)
-        require(validTime(settings.morningStart) && validTime(settings.morningEnd)) { "Khung giờ sáng không hợp lệ" }
-        require(validTime(settings.noonStart) && validTime(settings.noonEnd)) { "Khung giờ trưa không hợp lệ" }
-        require(validTime(settings.afternoonStart) && validTime(settings.afternoonEnd)) { "Khung giờ chiều không hợp lệ" }
+        fun minuteOfDay(value: String): Int {
+            val parts = value.split(':')
+            return parts[0].toInt() * 60 + parts[1].toInt()
+        }
+
+        val rawTimes = listOf(
+            settings.morningStart, settings.morningEnd,
+            settings.noonStart, settings.noonEnd,
+            settings.afternoonStart, settings.afternoonEnd
+        )
+        require(rawTimes.all(::validTime)) { "Khung giờ phải đúng định dạng HH:mm" }
+
+        val ranges = listOf(
+            minuteOfDay(settings.morningStart) to minuteOfDay(settings.morningEnd),
+            minuteOfDay(settings.noonStart) to minuteOfDay(settings.noonEnd),
+            minuteOfDay(settings.afternoonStart) to minuteOfDay(settings.afternoonEnd)
+        )
+        require(ranges.all { it.first < it.second }) { "Giờ bắt đầu phải nhỏ hơn giờ kết thúc" }
+        val sortedRanges = ranges.sortedBy { it.first }
+        require(sortedRanges.zipWithNext().all { (a, b) -> a.second <= b.first }) {
+            "Các khung giờ cao điểm không được chồng lấn"
+        }
 
         val allPoints = listOf(
             settings.morningBike, settings.morningFast, settings.morning2h, settings.morningFood,

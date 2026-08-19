@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.EventNote
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -43,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cry.manage.data.model.Wallet
 import com.cry.manage.feature.wallet.WalletViewModel
+import com.cry.manage.ui.components.ProjectBackground
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -58,6 +60,7 @@ fun FinanceHomeScreen(
     onBack: () -> Unit,
     onManageWallets: () -> Unit,
     onManageTransactions: () -> Unit,
+    onManagePlanned: () -> Unit,
     viewModel: WalletViewModel = viewModel()
 ) {
     val wallets by viewModel.wallets.collectAsState()
@@ -65,22 +68,12 @@ fun FinanceHomeScreen(
     val availableWallets = wallets.filter { it.isAvailable }
     val availableBalance = availableWallets.sumOf { it.balance }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(Color.White, CrySoft)
-                )
-            )
-    ) {
+    ProjectBackground {
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {
                 TopAppBar(
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent
-                    ),
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                     navigationIcon = {
                         IconButton(onClick = onBack) {
                             Icon(
@@ -171,6 +164,23 @@ fun FinanceHomeScreen(
                 }
 
                 item {
+                    ActionCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        title = "Dự chi / Dự thu",
+                        subtitle = "Theo dõi khoản đến hạn và duyệt vào lịch sử giao dịch",
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.EventNote,
+                                contentDescription = null,
+                                tint = CryRed,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        },
+                        onClick = onManagePlanned
+                    )
+                }
+
+                item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
@@ -191,9 +201,7 @@ fun FinanceHomeScreen(
                 }
 
                 if (availableWallets.isEmpty()) {
-                    item {
-                        EmptyWalletCard(onClick = onManageWallets)
-                    }
+                    item { EmptyWalletCard(onClick = onManageWallets) }
                 } else {
                     items(availableWallets, key = { it.id }) { wallet ->
                         AvailableWalletCard(wallet, onManageWallets)
@@ -278,12 +286,10 @@ private fun ActionCard(
     Card(
         modifier = modifier.clickable(onClick = onClick),
         shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.94f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Box(
                 modifier = Modifier
                     .size(48.dp)
@@ -294,17 +300,9 @@ private fun ActionCard(
                 icon()
             }
             Spacer(Modifier.height(12.dp))
-            Text(
-                text = title,
-                color = CryText,
-                fontWeight = FontWeight.Bold
-            )
+            Text(text = title, color = CryText, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(2.dp))
-            Text(
-                text = subtitle,
-                color = CryMuted,
-                fontSize = 12.sp
-            )
+            Text(text = subtitle, color = CryMuted, fontSize = 12.sp)
         }
     }
 }
@@ -316,14 +314,10 @@ private fun EmptyWalletCard(onClick: () -> Unit) {
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.94f))
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
-            Text(
-                text = "Chưa có ví khả dụng",
-                color = CryText,
-                fontWeight = FontWeight.Bold
-            )
+            Text(text = "Chưa có ví khả dụng", color = CryText, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(4.dp))
             Text(
                 text = "Nhấn để mở Quản lý ví",
@@ -341,7 +335,7 @@ private fun AvailableWalletCard(wallet: Wallet, onClick: () -> Unit) {
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.94f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
@@ -368,11 +362,7 @@ private fun AvailableWalletCard(wallet: Wallet, onClick: () -> Unit) {
                     .weight(1f)
                     .padding(start = 12.dp)
             ) {
-                Text(
-                    text = wallet.name,
-                    color = CryText,
-                    fontWeight = FontWeight.Bold
-                )
+                Text(text = wallet.name, color = CryText, fontWeight = FontWeight.Bold)
                 if (wallet.description.isNotBlank()) {
                     Spacer(Modifier.height(2.dp))
                     Text(

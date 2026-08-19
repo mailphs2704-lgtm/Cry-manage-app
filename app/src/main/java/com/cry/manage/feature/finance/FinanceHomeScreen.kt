@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.DirectionsBike
 import androidx.compose.material.icons.filled.EventNote
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material3.Card
@@ -33,9 +34,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cry.manage.data.model.Wallet
+import com.cry.manage.feature.wallet.WalletViewModel
 import com.cry.manage.ui.components.ProjectBackground
 import java.text.NumberFormat
 import java.util.Locale
@@ -55,17 +54,7 @@ private val CryRedDark = Color(0xFF9E1830)
 private val CrySoft = Color(0xFFFFEEF1)
 private val CryText = Color(0xFF28242A)
 private val CryMuted = Color(0xFF766C70)
-private val IncomeGreen = Color(0xFF17865C)
-private val IncomeSoft = Color(0xFFE8F6F0)
-
-private enum class DashboardPeriod(
-    val label: String,
-    val targetMultiplier: Int
-) {
-    DAY("Ngày", 1),
-    WEEK("Tuần", 7),
-    MONTH("Tháng", 30)
-}
+private val XanhGreen = Color(0xFF008C72)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,17 +63,13 @@ fun FinanceHomeScreen(
     onManageWallets: () -> Unit,
     onManageTransactions: () -> Unit,
     onManagePlanned: () -> Unit,
-    viewModel: FinanceDashboardViewModel = viewModel()
+    onManageXanhSm: () -> Unit,
+    viewModel: WalletViewModel = viewModel()
 ) {
-    val state by viewModel.state.collectAsState()
-    var selectedPeriod by remember { mutableStateOf(DashboardPeriod.DAY) }
-
-    val periodStats = when (selectedPeriod) {
-        DashboardPeriod.DAY -> state.day
-        DashboardPeriod.WEEK -> state.week
-        DashboardPeriod.MONTH -> state.month
-    }
-    val targetIncome = state.dailyTarget * selectedPeriod.targetMultiplier
+    val wallets by viewModel.wallets.collectAsState()
+    val totalBalance = wallets.sumOf { it.balance }
+    val availableWallets = wallets.filter { it.isAvailable }
+    val availableBalance = availableWallets.sumOf { it.balance }
 
     ProjectBackground {
         Scaffold(
@@ -110,7 +95,7 @@ fun FinanceHomeScreen(
                                 fontSize = 21.sp
                             )
                             Text(
-                                text = "Tổng quan số dư, dòng tiền và mục tiêu",
+                                text = "Tổng quan hôm nay",
                                 color = CryMuted,
                                 fontSize = 12.sp
                             )
@@ -130,48 +115,8 @@ fun FinanceHomeScreen(
 
                 item {
                     BalanceHeroCard(
-                        totalBalance = state.totalBalance,
-                        availableBalance = state.availableBalance
-                    )
-                }
-
-                item {
-                    PeriodSelector(
-                        selected = selectedPeriod,
-                        onSelected = { selectedPeriod = it }
-                    )
-                }
-
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        MetricCard(
-                            modifier = Modifier.weight(1f),
-                            title = "Thu nhập",
-                            amount = periodStats.income,
-                            accent = IncomeGreen,
-                            background = IncomeSoft
-                        )
-                        MetricCard(
-                            modifier = Modifier.weight(1f),
-                            title = "Chi tiêu",
-                            amount = periodStats.expense,
-                            accent = CryRed,
-                            background = CrySoft
-                        )
-                    }
-                }
-
-                item {
-                    TargetIncomeCard(
-                        period = selectedPeriod,
-                        targetIncome = targetIncome,
-                        fundingGap = state.fundingGap,
-                        totalPlannedExpense = state.totalPlannedExpense,
-                        totalPlannedIncome = state.totalPlannedIncome,
-                        onClick = onManagePlanned
+                        totalBalance = totalBalance,
+                        availableBalance = availableBalance
                     )
                 }
 
@@ -239,6 +184,23 @@ fun FinanceHomeScreen(
                 }
 
                 item {
+                    ActionCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        title = "Xanh SM Bike",
+                        subtitle = "Ghi chuyến, doanh số, thu nhập ròng, điểm và chiết khấu",
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.DirectionsBike,
+                                contentDescription = null,
+                                tint = XanhGreen,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        },
+                        onClick = onManageXanhSm
+                    )
+                }
+
+                item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
@@ -251,17 +213,17 @@ fun FinanceHomeScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "${state.availableWallets.size} ví",
+                            text = "${availableWallets.size} ví",
                             color = CryMuted,
                             fontSize = 13.sp
                         )
                     }
                 }
 
-                if (state.availableWallets.isEmpty()) {
+                if (availableWallets.isEmpty()) {
                     item { EmptyWalletCard(onClick = onManageWallets) }
                 } else {
-                    items(state.availableWallets, key = { it.id }) { wallet ->
+                    items(availableWallets, key = { it.id }) { wallet ->
                         AvailableWalletCard(wallet, onManageWallets)
                     }
                 }
@@ -269,174 +231,6 @@ fun FinanceHomeScreen(
                 item { Spacer(Modifier.height(24.dp)) }
             }
         }
-    }
-}
-
-@Composable
-private fun PeriodSelector(
-    selected: DashboardPeriod,
-    onSelected: (DashboardPeriod) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(Color.White.copy(alpha = 0.86f))
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        DashboardPeriod.entries.forEach { period ->
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(
-                        if (selected == period) CryRed else Color.Transparent
-                    )
-                    .clickable { onSelected(period) }
-                    .padding(vertical = 10.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = period.label,
-                    color = if (selected == period) Color.White else CryMuted,
-                    fontWeight = if (selected == period) FontWeight.Bold else FontWeight.Medium
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun MetricCard(
-    modifier: Modifier,
-    title: String,
-    amount: Double,
-    accent: Color,
-    background: Color
-) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.94f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(background)
-            )
-            Spacer(Modifier.height(10.dp))
-            Text(text = title, color = CryMuted, fontSize = 12.sp)
-            Spacer(Modifier.height(3.dp))
-            Text(
-                text = formatCurrency(amount),
-                color = accent,
-                fontWeight = FontWeight.Bold,
-                fontSize = 17.sp
-            )
-        }
-    }
-}
-
-@Composable
-private fun TargetIncomeCard(
-    period: DashboardPeriod,
-    targetIncome: Double,
-    fundingGap: Double,
-    totalPlannedExpense: Double,
-    totalPlannedIncome: Double,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(26.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.94f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(modifier = Modifier.padding(18.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Thu nhập mục tiêu / ${period.label.lowercase()}",
-                        color = CryMuted,
-                        fontSize = 12.sp
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = formatCurrency(targetIncome),
-                        color = CryRed,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 24.sp
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .size(46.dp)
-                        .clip(RoundedCornerShape(15.dp))
-                        .background(CrySoft),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.EventNote,
-                        contentDescription = null,
-                        tint = CryRed
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(14.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(CrySoft.copy(alpha = 0.65f))
-                    .padding(12.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                TargetDetail(
-                    modifier = Modifier.weight(1f),
-                    label = "Tổng dự chi",
-                    value = totalPlannedExpense
-                )
-                TargetDetail(
-                    modifier = Modifier.weight(1f),
-                    label = "Dự thu",
-                    value = totalPlannedIncome
-                )
-                TargetDetail(
-                    modifier = Modifier.weight(1f),
-                    label = "Còn thiếu",
-                    value = fundingGap
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun TargetDetail(
-    modifier: Modifier,
-    label: String,
-    value: Double
-) {
-    Column(modifier = modifier) {
-        Text(text = label, color = CryMuted, fontSize = 10.sp)
-        Spacer(Modifier.height(2.dp))
-        Text(
-            text = formatCompactCurrency(value),
-            color = CryText,
-            fontWeight = FontWeight.Bold,
-            fontSize = 12.sp
-        )
     }
 }
 
@@ -611,13 +405,4 @@ private fun formatCurrency(amount: Double): String {
     val formatter = NumberFormat.getNumberInstance(Locale("vi", "VN"))
     formatter.maximumFractionDigits = 0
     return "${formatter.format(amount)} đ"
-}
-
-private fun formatCompactCurrency(amount: Double): String {
-    return when {
-        amount >= 1_000_000_000 -> String.format(Locale.US, "%.1f tỷ", amount / 1_000_000_000)
-        amount >= 1_000_000 -> String.format(Locale.US, "%.1f tr", amount / 1_000_000)
-        amount >= 1_000 -> String.format(Locale.US, "%.0f k", amount / 1_000)
-        else -> String.format(Locale.US, "%.0f đ", amount)
-    }
 }

@@ -47,11 +47,33 @@ object XanhSmRules {
         else -> 0
     }
 
-    fun milestones(settings: XanhSettingsVersion): List<WeeklyMilestone> = listOf(
-        WeeklyMilestone(settings.milestone1Points, settings.milestone1Reward),
-        WeeklyMilestone(settings.milestone2Points, settings.milestone2Reward),
-        WeeklyMilestone(settings.milestone3Points, settings.milestone3Reward)
-    ).sortedBy { it.points }
+    fun milestones(settings: XanhSettingsVersion): List<WeeklyMilestone> {
+        val dynamic = decodeMilestones(settings.milestonesData)
+        if (dynamic.isNotEmpty()) return dynamic.sortedBy { it.points }
+
+        return listOf(
+            WeeklyMilestone(settings.milestone1Points, settings.milestone1Reward),
+            WeeklyMilestone(settings.milestone2Points, settings.milestone2Reward),
+            WeeklyMilestone(settings.milestone3Points, settings.milestone3Reward)
+        ).sortedBy { it.points }
+    }
+
+    fun encodeMilestones(items: List<WeeklyMilestone>): String = items
+        .sortedBy { it.points }
+        .joinToString("|") { "${it.points}:${it.reward.toLong()}" }
+
+    fun decodeMilestones(value: String): List<WeeklyMilestone> = value
+        .split('|')
+        .mapNotNull { raw ->
+            val parts = raw.split(':')
+            if (parts.size != 2) return@mapNotNull null
+            val points = parts[0].toIntOrNull() ?: return@mapNotNull null
+            val reward = parts[1].toDoubleOrNull() ?: return@mapNotNull null
+            WeeklyMilestone(points, reward)
+        }
+        .filter { it.points > 0 && it.reward >= 0 }
+        .distinctBy { it.points }
+        .sortedBy { it.points }
 
     fun nextMilestone(settings: XanhSettingsVersion, totalPoints: Int): WeeklyMilestone? =
         milestones(settings).firstOrNull { totalPoints < it.points }

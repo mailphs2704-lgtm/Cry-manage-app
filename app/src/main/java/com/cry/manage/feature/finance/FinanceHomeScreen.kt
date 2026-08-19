@@ -39,10 +39,10 @@ import java.util.Locale
 fun FinanceHomeScreen(
     onBack: () -> Unit,
     onManageWallets: () -> Unit,
+    onManageTransactions: () -> Unit,
     viewModel: WalletViewModel = viewModel()
 ) {
     val wallets by viewModel.wallets.collectAsState()
-
     val totalBalance = wallets.sumOf { it.balance }
     val availableWallets = wallets.filter { it.isAvailable }
     val availableBalance = availableWallets.sumOf { it.balance }
@@ -52,15 +52,10 @@ fun FinanceHomeScreen(
             TopAppBar(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Quay lại"
-                        )
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Quay lại")
                     }
                 },
-                title = {
-                    Text("Tổng quan tài chính")
-                }
+                title = { Text("Tổng quan tài chính") }
             )
         }
     ) { paddingValues ->
@@ -71,26 +66,19 @@ fun FinanceHomeScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item {
-                Spacer(modifier = Modifier.height(4.dp))
-            }
+            item { Spacer(Modifier.height(4.dp)) }
+            item { BalanceSummaryCard("Tổng số dư", totalBalance) }
+            item { BalanceSummaryCard("Tổng số dư khả dụng", availableBalance) }
 
             item {
-                BalanceSummaryCard(
-                    title = "Tổng số dư",
-                    amount = totalBalance
+                FeatureCard(
+                    title = "Quản lý thu chi",
+                    description = "Nhập khoản thu/chi và xem lịch sử giao dịch",
+                    onClick = onManageTransactions
                 )
             }
 
             item {
-                BalanceSummaryCard(
-                    title = "Tổng số dư khả dụng",
-                    amount = availableBalance
-                )
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "Ví khả dụng",
                     style = MaterialTheme.typography.titleMedium,
@@ -100,81 +88,36 @@ fun FinanceHomeScreen(
 
             if (availableWallets.isEmpty()) {
                 item {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(onClick = onManageWallets)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp)
-                        ) {
-                            Text("Chưa có ví khả dụng")
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Nhấn để mở Quản lý ví",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
-                }
-            } else {
-                items(
-                    items = availableWallets,
-                    key = { it.id }
-                ) { wallet ->
-                    AvailableWalletCard(
-                        wallet = wallet,
+                    FeatureCard(
+                        title = "Chưa có ví khả dụng",
+                        description = "Nhấn để mở Quản lý ví",
                         onClick = onManageWallets
                     )
                 }
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(onClick = onManageWallets)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = "Quản lý ví",
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Thêm, sửa, cập nhật số dư và bật/tắt khả dụng",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
+            } else {
+                items(availableWallets, key = { it.id }) { wallet ->
+                    AvailableWalletCard(wallet, onManageWallets)
                 }
             }
 
             item {
-                Spacer(modifier = Modifier.height(24.dp))
+                FeatureCard(
+                    title = "Quản lý ví",
+                    description = "Thêm, sửa, cập nhật số dư và bật/tắt khả dụng",
+                    onClick = onManageWallets
+                )
             }
+            item { Spacer(Modifier.height(24.dp)) }
         }
     }
 }
 
 @Composable
-private fun BalanceSummaryCard(
-    title: String,
-    amount: Double
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Spacer(modifier = Modifier.height(6.dp))
+private fun BalanceSummaryCard(title: String, amount: Double) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(title, style = MaterialTheme.typography.bodyMedium)
+            Spacer(Modifier.height(6.dp))
             Text(
                 text = formatCurrency(amount),
                 style = MaterialTheme.typography.headlineSmall,
@@ -185,10 +128,26 @@ private fun BalanceSummaryCard(
 }
 
 @Composable
-private fun AvailableWalletCard(
-    wallet: Wallet,
+private fun FeatureCard(
+    title: String,
+    description: String,
     onClick: () -> Unit
 ) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(title, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(4.dp))
+            Text(description, style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+@Composable
+private fun AvailableWalletCard(wallet: Wallet, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -200,26 +159,14 @@ private fun AvailableWalletCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = wallet.name,
-                    fontWeight = FontWeight.Bold
-                )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(wallet.name, fontWeight = FontWeight.Bold)
                 if (wallet.description.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = wallet.description,
-                        style = MaterialTheme.typography.bodySmall
-                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(wallet.description, style = MaterialTheme.typography.bodySmall)
                 }
             }
-
-            Text(
-                text = formatCurrency(wallet.balance),
-                fontWeight = FontWeight.SemiBold
-            )
+            Text(formatCurrency(wallet.balance), fontWeight = FontWeight.SemiBold)
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.cry.manage.feature.home.project
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -40,13 +41,30 @@ import com.cry.manage.feature.finance.FinanceHomeScreen
 import com.cry.manage.feature.planned.PlannedScreen
 import com.cry.manage.feature.transaction.TransactionScreen
 import com.cry.manage.feature.wallet.WalletScreen
+import com.cry.manage.feature.xanh.XanhSmScreen
 
 private val CryRed = Color(0xFFC9233B)
 
 @Composable
-fun ProjectMenuScreen() {
+fun ProjectMenuScreen(
+    onBackToHome: () -> Unit
+) {
     var currentScreen by remember {
         mutableStateOf(ProjectMenuDestination.PROJECT_MENU)
+    }
+
+    BackHandler {
+        currentScreen = when (currentScreen) {
+            ProjectMenuDestination.PROJECT_MENU -> {
+                onBackToHome()
+                ProjectMenuDestination.PROJECT_MENU
+            }
+            ProjectMenuDestination.FINANCE_HOME -> ProjectMenuDestination.PROJECT_MENU
+            ProjectMenuDestination.WALLET,
+            ProjectMenuDestination.TRANSACTION,
+            ProjectMenuDestination.PLANNED,
+            ProjectMenuDestination.XANH_SM -> ProjectMenuDestination.FINANCE_HOME
+        }
     }
 
     when (currentScreen) {
@@ -55,7 +73,8 @@ fun ProjectMenuScreen() {
                 onBack = { currentScreen = ProjectMenuDestination.PROJECT_MENU },
                 onManageWallets = { currentScreen = ProjectMenuDestination.WALLET },
                 onManageTransactions = { currentScreen = ProjectMenuDestination.TRANSACTION },
-                onManagePlanned = { currentScreen = ProjectMenuDestination.PLANNED }
+                onManagePlanned = { currentScreen = ProjectMenuDestination.PLANNED },
+                onManageXanhSm = { currentScreen = ProjectMenuDestination.XANH_SM }
             )
             return
         }
@@ -76,6 +95,13 @@ fun ProjectMenuScreen() {
 
         ProjectMenuDestination.PLANNED -> {
             PlannedScreen(
+                onBack = { currentScreen = ProjectMenuDestination.FINANCE_HOME }
+            )
+            return
+        }
+
+        ProjectMenuDestination.XANH_SM -> {
+            XanhSmScreen(
                 onBack = { currentScreen = ProjectMenuDestination.FINANCE_HOME }
             )
             return
@@ -103,7 +129,8 @@ private enum class ProjectMenuDestination {
     FINANCE_HOME,
     WALLET,
     TRANSACTION,
-    PLANNED
+    PLANNED,
+    XANH_SM
 }
 
 @Composable

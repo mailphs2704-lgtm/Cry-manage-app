@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cry.manage.R
 import com.cry.manage.feature.finance.FinanceHomeScreen
+import com.cry.manage.feature.planned.PlannedScreen
 import com.cry.manage.feature.transaction.TransactionScreen
 import com.cry.manage.feature.wallet.WalletScreen
 
@@ -53,7 +54,8 @@ fun ProjectMenuScreen() {
             FinanceHomeScreen(
                 onBack = { currentScreen = ProjectMenuDestination.PROJECT_MENU },
                 onManageWallets = { currentScreen = ProjectMenuDestination.WALLET },
-                onManageTransactions = { currentScreen = ProjectMenuDestination.TRANSACTION }
+                onManageTransactions = { currentScreen = ProjectMenuDestination.TRANSACTION },
+                onManagePlanned = { currentScreen = ProjectMenuDestination.PLANNED }
             )
             return
         }
@@ -67,6 +69,13 @@ fun ProjectMenuScreen() {
 
         ProjectMenuDestination.TRANSACTION -> {
             TransactionScreen(
+                onBack = { currentScreen = ProjectMenuDestination.FINANCE_HOME }
+            )
+            return
+        }
+
+        ProjectMenuDestination.PLANNED -> {
+            PlannedScreen(
                 onBack = { currentScreen = ProjectMenuDestination.FINANCE_HOME }
             )
             return
@@ -93,7 +102,8 @@ private enum class ProjectMenuDestination {
     PROJECT_MENU,
     FINANCE_HOME,
     WALLET,
-    TRANSACTION
+    TRANSACTION,
+    PLANNED
 }
 
 @Composable

@@ -4,22 +4,45 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+import com.cry.manage.data.dao.TransactionDao
 import com.cry.manage.data.dao.WalletDao
+import com.cry.manage.data.model.Transaction
 import com.cry.manage.data.model.Wallet
 
 @Database(
-    entities = [Wallet::class],
-    version = 1,
+    entities = [Wallet::class, Transaction::class],
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun walletDao(): WalletDao
+    abstract fun transactionDao(): TransactionDao
 
     companion object {
 
         @Volatile
         private var INSTANCE: AppDatabase? = null
+
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS transactions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        walletId INTEGER NOT NULL,
+                        walletName TEXT NOT NULL,
+                        type TEXT NOT NULL,
+                        amount REAL NOT NULL,
+                        note TEXT NOT NULL,
+                        occurredAt INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
 
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -27,7 +50,9 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "cry_manage_database"
-                ).build()
+                )
+                    .addMigrations(MIGRATION_1_2)
+                    .build()
 
                 INSTANCE = instance
                 instance

@@ -3,10 +3,12 @@ package com.cry.manage
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.cry.manage.data.DemoDataSeeder
 import com.cry.manage.feature.home.HomeScreen
 import com.cry.manage.feature.home.project.ProjectMenuScreen
 import com.cry.manage.ui.theme.CryManageTheme
@@ -20,6 +22,10 @@ class MainActivity : ComponentActivity() {
             CryManageTheme {
                 var isProjectMenu by remember {
                     mutableStateOf(false)
+                }
+
+                LaunchedEffect(Unit) {
+                    DemoDataSeeder.seedIfNeeded(this@MainActivity)
                 }
 
                 if (isProjectMenu) {

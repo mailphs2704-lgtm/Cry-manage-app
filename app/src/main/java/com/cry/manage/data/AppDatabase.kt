@@ -17,7 +17,7 @@ import com.cry.manage.data.model.XanhTrip
 
 @Database(
     entities = [Wallet::class, Transaction::class, PlannedItem::class, XanhTrip::class],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -95,6 +95,16 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE xanh_trips ADD COLUMN serviceType TEXT NOT NULL DEFAULT 'BIKE'")
+                db.execSQL("ALTER TABLE xanh_trips ADD COLUMN tips REAL NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE xanh_trips ADD COLUMN foodCost REAL NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE xanh_trips ADD COLUMN note TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE xanh_trips ADD COLUMN syncedTransactionIds TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -102,7 +112,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "cry_manage_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .build()
 
                 INSTANCE = instance

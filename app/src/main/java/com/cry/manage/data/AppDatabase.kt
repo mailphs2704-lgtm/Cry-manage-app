@@ -9,15 +9,17 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.cry.manage.data.dao.PlannedItemDao
 import com.cry.manage.data.dao.TransactionDao
 import com.cry.manage.data.dao.WalletDao
+import com.cry.manage.data.dao.XanhSettingsDao
 import com.cry.manage.data.dao.XanhTripDao
 import com.cry.manage.data.model.PlannedItem
 import com.cry.manage.data.model.Transaction
 import com.cry.manage.data.model.Wallet
+import com.cry.manage.data.model.XanhSettingsVersion
 import com.cry.manage.data.model.XanhTrip
 
 @Database(
-    entities = [Wallet::class, Transaction::class, PlannedItem::class, XanhTrip::class],
-    version = 5,
+    entities = [Wallet::class, Transaction::class, PlannedItem::class, XanhTrip::class, XanhSettingsVersion::class],
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -26,6 +28,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
     abstract fun plannedItemDao(): PlannedItemDao
     abstract fun xanhTripDao(): XanhTripDao
+    abstract fun xanhSettingsDao(): XanhSettingsDao
 
     companion object {
 
@@ -105,6 +108,66 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS xanh_settings_versions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        effectiveFrom INTEGER NOT NULL,
+                        morningStart TEXT NOT NULL,
+                        morningEnd TEXT NOT NULL,
+                        noonStart TEXT NOT NULL,
+                        noonEnd TEXT NOT NULL,
+                        afternoonStart TEXT NOT NULL,
+                        afternoonEnd TEXT NOT NULL,
+                        morningBike INTEGER NOT NULL,
+                        morningFast INTEGER NOT NULL,
+                        morning2h INTEGER NOT NULL,
+                        morningFood INTEGER NOT NULL,
+                        noonBike INTEGER NOT NULL,
+                        noonFast INTEGER NOT NULL,
+                        noon2h INTEGER NOT NULL,
+                        noonFood INTEGER NOT NULL,
+                        afternoonBike INTEGER NOT NULL,
+                        afternoonFast INTEGER NOT NULL,
+                        afternoon2h INTEGER NOT NULL,
+                        afternoonFood INTEGER NOT NULL,
+                        offpeakBike INTEGER NOT NULL,
+                        offpeakFast INTEGER NOT NULL,
+                        offpeak2h INTEGER NOT NULL,
+                        offpeakFood INTEGER NOT NULL,
+                        milestone1Points INTEGER NOT NULL,
+                        milestone1Reward REAL NOT NULL,
+                        milestone2Points INTEGER NOT NULL,
+                        milestone2Reward REAL NOT NULL,
+                        milestone3Points INTEGER NOT NULL,
+                        milestone3Reward REAL NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO xanh_settings_versions (
+                        effectiveFrom, morningStart, morningEnd, noonStart, noonEnd, afternoonStart, afternoonEnd,
+                        morningBike, morningFast, morning2h, morningFood,
+                        noonBike, noonFast, noon2h, noonFood,
+                        afternoonBike, afternoonFast, afternoon2h, afternoonFood,
+                        offpeakBike, offpeakFast, offpeak2h, offpeakFood,
+                        milestone1Points, milestone1Reward, milestone2Points, milestone2Reward, milestone3Points, milestone3Reward
+                    ) VALUES (
+                        0, '06:00', '09:00', '11:00', '13:30', '16:30', '19:30',
+                        3, 4, 2, 2,
+                        2, 3, 2, 4,
+                        3, 4, 2, 2,
+                        1, 2, 1, 1,
+                        50, 50000, 100, 150000, 150, 300000
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -112,7 +175,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "cry_manage_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                     .build()
 
                 INSTANCE = instance

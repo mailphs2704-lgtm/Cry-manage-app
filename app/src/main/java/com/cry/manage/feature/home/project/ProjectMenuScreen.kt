@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cry.manage.R
 import com.cry.manage.feature.finance.FinanceHomeScreen
+import com.cry.manage.feature.transaction.TransactionScreen
 import com.cry.manage.feature.wallet.WalletScreen
 
 private val CryRed = Color(0xFFC9233B)
@@ -50,21 +51,23 @@ fun ProjectMenuScreen() {
     when (currentScreen) {
         ProjectMenuDestination.FINANCE_HOME -> {
             FinanceHomeScreen(
-                onBack = {
-                    currentScreen = ProjectMenuDestination.PROJECT_MENU
-                },
-                onManageWallets = {
-                    currentScreen = ProjectMenuDestination.WALLET
-                }
+                onBack = { currentScreen = ProjectMenuDestination.PROJECT_MENU },
+                onManageWallets = { currentScreen = ProjectMenuDestination.WALLET },
+                onManageTransactions = { currentScreen = ProjectMenuDestination.TRANSACTION }
             )
             return
         }
 
         ProjectMenuDestination.WALLET -> {
             WalletScreen(
-                onBack = {
-                    currentScreen = ProjectMenuDestination.FINANCE_HOME
-                }
+                onBack = { currentScreen = ProjectMenuDestination.FINANCE_HOME }
+            )
+            return
+        }
+
+        ProjectMenuDestination.TRANSACTION -> {
+            TransactionScreen(
+                onBack = { currentScreen = ProjectMenuDestination.FINANCE_HOME }
             )
             return
         }
@@ -72,23 +75,16 @@ fun ProjectMenuScreen() {
         ProjectMenuDestination.PROJECT_MENU -> Unit
     }
 
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
         Image(
-            painter = painterResource(
-                id = R.drawable.project_menu_background
-            ),
+            painter = painterResource(id = R.drawable.project_menu_background),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
-
         ProjectTopBar()
         ProjectMenuSection(
-            onCryManageClick = {
-                currentScreen = ProjectMenuDestination.FINANCE_HOME
-            }
+            onCryManageClick = { currentScreen = ProjectMenuDestination.FINANCE_HOME }
         )
     }
 }
@@ -96,7 +92,8 @@ fun ProjectMenuScreen() {
 private enum class ProjectMenuDestination {
     PROJECT_MENU,
     FINANCE_HOME,
-    WALLET
+    WALLET,
+    TRANSACTION
 }
 
 @Composable
@@ -105,20 +102,13 @@ private fun ProjectTopBar() {
         modifier = Modifier
             .fillMaxWidth()
             .statusBarsPadding()
-            .padding(
-                start = 18.dp,
-                end = 18.dp,
-                top = 10.dp,
-                bottom = 8.dp
-            ),
+            .padding(start = 18.dp, end = 18.dp, top = 10.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
                 .size(55.dp)
-                .clip(
-                    RoundedCornerShape(18.dp)
-                )
+                .clip(RoundedCornerShape(18.dp))
                 .background(Color.White),
             contentAlignment = Alignment.Center
         ) {
@@ -130,26 +120,15 @@ private fun ProjectTopBar() {
             )
         }
 
-        Spacer(
-            modifier = Modifier.width(28.dp)
-        )
+        Spacer(modifier = Modifier.width(28.dp))
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Image(
-                painter = painterResource(
-                    id = R.drawable.xin_chao_only
-                ),
+                painter = painterResource(id = R.drawable.xin_chao_only),
                 contentDescription = "Xin chào",
-                modifier = Modifier
-                    .width(115.dp)
+                modifier = Modifier.width(115.dp)
             )
-
-            Spacer(
-                modifier = Modifier.width(18.dp)
-            )
-
+            Spacer(modifier = Modifier.width(18.dp))
             Text(
                 text = "Cry",
                 color = CryRed,
@@ -162,17 +141,11 @@ private fun ProjectTopBar() {
 }
 
 @Composable
-private fun ProjectMenuSection(
-    onCryManageClick: () -> Unit
-) {
+private fun ProjectMenuSection(onCryManageClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(
-                start = 32.dp,
-                end = 32.dp,
-                top = 145.dp
-            ),
+            .padding(start = 32.dp, end = 32.dp, top = 145.dp),
         horizontalAlignment = Alignment.Start
     ) {
         Text(
@@ -183,41 +156,26 @@ private fun ProjectMenuSection(
             fontWeight = FontWeight.Bold,
             letterSpacing = (-0.3).sp
         )
+        Spacer(modifier = Modifier.height(10.dp))
 
-        Spacer(
-            modifier = Modifier.height(10.dp)
-        )
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
                     .width(70.dp)
                     .height(4.dp)
-                    .clip(
-                        RoundedCornerShape(4.dp)
-                    )
+                    .clip(RoundedCornerShape(4.dp))
                     .background(CryRed)
             )
-
-            Spacer(
-                modifier = Modifier.width(6.dp)
-            )
-
+            Spacer(modifier = Modifier.width(6.dp))
             Box(
                 modifier = Modifier
                     .size(7.dp)
-                    .clip(
-                        RoundedCornerShape(50)
-                    )
+                    .clip(RoundedCornerShape(50))
                     .background(CryRed)
             )
         }
 
-        Spacer(
-            modifier = Modifier.height(28.dp)
-        )
+        Spacer(modifier = Modifier.height(28.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -227,22 +185,15 @@ private fun ProjectMenuSection(
                 modifier = Modifier
                     .weight(1f)
                     .height(170.dp)
-                    .clip(
-                        RoundedCornerShape(28.dp)
-                    )
+                    .clip(RoundedCornerShape(28.dp))
                     .background(Color.White)
-                    .clickable {
-                        onCryManageClick()
-                    },
+                    .clickable { onCryManageClick() },
                 contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = painterResource(
-                        id = R.drawable.cry_manage_logo
-                    ),
+                    painter = painterResource(id = R.drawable.cry_manage_logo),
                     contentDescription = "Cry Manage",
-                    modifier = Modifier
-                        .width(150.dp),
+                    modifier = Modifier.width(150.dp),
                     contentScale = ContentScale.Fit
                 )
             }
@@ -251,9 +202,7 @@ private fun ProjectMenuSection(
                 modifier = Modifier
                     .weight(1f)
                     .height(170.dp)
-                    .clip(
-                        RoundedCornerShape(28.dp)
-                    )
+                    .clip(RoundedCornerShape(28.dp))
                     .background(Color.White)
             )
         }

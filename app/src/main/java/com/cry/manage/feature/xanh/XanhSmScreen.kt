@@ -1,5 +1,6 @@
 package com.cry.manage.feature.xanh
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,6 +20,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DirectionsBike
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -53,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cry.manage.data.model.Wallet
+import com.cry.manage.data.model.XanhSettingsVersion
 import com.cry.manage.data.model.XanhTrip
 import com.cry.manage.ui.components.ProjectBackground
 import java.text.NumberFormat
@@ -78,9 +81,25 @@ fun XanhSmScreen(
 ) {
     val trips by viewModel.trips.collectAsState()
     val wallets by viewModel.wallets.collectAsState()
+    val settings by viewModel.settings.collectAsState()
+
     var showAddDialog by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
     var deletingTrip by remember { mutableStateOf<XanhTrip?>(null) }
     var weekOffset by remember { mutableIntStateOf(0) }
+
+    BackHandler(enabled = showSettings) {
+        showSettings = false
+    }
+
+    if (showSettings) {
+        XanhSettingsScreen(
+            settings = settings,
+            onBack = { showSettings = false },
+            onSave = { viewModel.saveSettings(it) }
+        )
+        return
+    }
 
     val weekRange = remember(weekOffset) { weekRange(weekOffset) }
     val weekTrips = trips.filter { it.occurredAt in weekRange.first..weekRange.second }
@@ -90,8 +109,8 @@ fun XanhSmScreen(
     val totalDiscount = weekTrips.sumOf { it.discountAmount }
     val totalPoints = weekTrips.sumOf { it.points }
     val avgDiscount = if (totalRevenue > 0) totalDiscount / totalRevenue * 100.0 else 0.0
-    val nextMilestone = XanhSmRules.nextMilestone(totalPoints)
-    val achievedReward = XanhSmRules.achievedReward(totalPoints)
+    val nextMilestone = XanhSmRules.nextMilestone(settings, totalPoints)
+    val achievedReward = XanhSmRules.achievedReward(settings, totalPoints)
 
     ProjectBackground {
         Scaffold(
@@ -108,6 +127,11 @@ fun XanhSmScreen(
                         Column {
                             Text("Xanh SM Companion", color = CryText, fontWeight = FontWeight.Bold, fontSize = 21.sp)
                             Text("Dòng tiền • chuyến xe • điểm thưởng", color = CryMuted, fontSize = 12.sp)
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { showSettings = true }) {
+                            Icon(Icons.Default.Settings, contentDescription = "Cài đặt Xanh SM", tint = XanhGreen)
                         }
                     }
                 )
@@ -157,6 +181,7 @@ fun XanhSmScreen(
 
                 item {
                     MilestoneCard(
+                        settings = settings,
                         totalPoints = totalPoints,
                         achievedReward = achievedReward,
                         nextMilestone = nextMilestone
@@ -192,6 +217,7 @@ fun XanhSmScreen(
     if (showAddDialog) {
         AddTripDialog(
             wallets = wallets,
+            settings = settings,
             onDismiss = { showAddDialog = false },
             onConfirm = { serviceType, revenue, netIncome, tips, promotion, foodCost, paymentType, timeSlot, note, driverWallet, receiveWallet, occurredAt ->
                 viewModel.addTrip(
@@ -286,8 +312,14 @@ private fun MetricCard(modifier: Modifier, title: String, value: String, accent:
 }
 
 @Composable
-private fun MilestoneCard(totalPoints: Int, achievedReward: Double, nextMilestone: WeeklyMilestone?) {
-    val target = nextMilestone?.points ?: XanhSmRules.weeklyMilestones.last().points
+private fun MilestoneCard(
+    settings: XanhSettingsVersion,
+    totalPoints: Int,
+    achievedReward: Double,
+    nextMilestone: WeeklyMilestone?
+) {
+    val milestones = XanhSmRules.milestones(settings)
+    val target = nextMilestone?.points ?: milestones.lastOrNull()?.points ?: 1
     val progress = (totalPoints.toFloat() / max(target, 1).toFloat()).coerceIn(0f, 1f)
 
     Card(
@@ -312,6 +344,12 @@ private fun MilestoneCard(totalPoints: Int, achievedReward: Double, nextMileston
                 color = CryMuted,
                 fontSize = 12.sp
             )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                milestones.joinToString("  •  ") { "${it.points}đ → ${formatCurrency(it.reward)}" },
+                color = CryMuted,
+                fontSize = 11.sp
+            )
         }
     }
 }
@@ -322,7 +360,11 @@ private fun DayHeader(trips: List<XanhTrip>) {
     val dayNet = trips.sumOf { it.netIncome }
     val dayTips = trips.sumOf { it.tips }
     Column(modifier = Modifier.padding(top = 4.dp)) {
-        Text("${formatWeekday(trips.first().occurredAt)}, ${formatDate(trips.first().occurredAt)} • ${trips.size} chuyến", color = CryText, fontWeight = FontWeight.Bold)
+        Text(
+            "${formatWeekday(trips.first().occurredAt)}, ${formatDate(trips.first().occurredAt)} • ${trips.size} chuyến",
+            color = CryText,
+            fontWeight = FontWeight.Bold
+        )
         Text(
             "Doanh số ${formatCurrency(dayRevenue)} • Ròng ${formatCurrency(dayNet)}" +
                 if (dayTips > 0) " • Tips +${formatCurrency(dayTips)}" else "",
@@ -366,7 +408,9 @@ private fun TripCard(trip: XanhTrip, onDelete: () -> Unit) {
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(formatCurrency(trip.netIncome), color = XanhGreen, fontWeight = FontWeight.Bold)
-                    if (trip.tips > 0) Text("+${formatCurrency(trip.tips)} tips", color = TipPurple, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    if (trip.tips > 0) {
+                        Text("+${formatCurrency(trip.tips)} tips", color = TipPurple, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    }
                 }
                 IconButton(onClick = onDelete) {
                     Icon(Icons.Default.Delete, contentDescription = "Xóa chuyến", tint = CryRed)
@@ -400,6 +444,7 @@ private fun TripCard(trip: XanhTrip, onDelete: () -> Unit) {
 @Composable
 private fun AddTripDialog(
     wallets: List<Wallet>,
+    settings: XanhSettingsVersion,
     onDismiss: () -> Unit,
     onConfirm: (String, Double, Double, Double, Double, Double, String, String, String, Wallet, Wallet?, Long) -> Unit
 ) {
@@ -424,7 +469,7 @@ private fun AddTripDialog(
     val tipsPreview = parseMoney(tipsText) ?: 0.0
     val discountPreview = (revenuePreview - netPreview).coerceAtLeast(0.0)
     val discountPercent = if (revenuePreview > 0) discountPreview / revenuePreview * 100.0 else 0.0
-    val pointsPreview = XanhSmRules.pointsFor(serviceType, timeSlot)
+    val pointsPreview = XanhSmRules.pointsFor(settings, serviceType, timeSlot)
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -448,13 +493,25 @@ private fun AddTripDialog(
                 item { Text("Khung giờ • tự tính điểm", color = CryMuted, fontSize = 12.sp) }
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        ChoiceButton("Sáng", XanhTrip.SLOT_MORNING, timeSlot) { timeSlot = it }
-                        ChoiceButton("Trưa", XanhTrip.SLOT_NOON, timeSlot) { timeSlot = it }
+                        ChoiceButton(
+                            XanhSmRules.slotLabel(settings, XanhTrip.SLOT_MORNING),
+                            XanhTrip.SLOT_MORNING,
+                            timeSlot
+                        ) { timeSlot = it }
+                        ChoiceButton(
+                            XanhSmRules.slotLabel(settings, XanhTrip.SLOT_NOON),
+                            XanhTrip.SLOT_NOON,
+                            timeSlot
+                        ) { timeSlot = it }
                     }
                 }
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        ChoiceButton("Chiều", XanhTrip.SLOT_AFTERNOON, timeSlot) { timeSlot = it }
+                        ChoiceButton(
+                            XanhSmRules.slotLabel(settings, XanhTrip.SLOT_AFTERNOON),
+                            XanhTrip.SLOT_AFTERNOON,
+                            timeSlot
+                        ) { timeSlot = it }
                         ChoiceButton("Ngoài giờ", XanhTrip.SLOT_OFFPEAK, timeSlot) { timeSlot = it }
                     }
                 }
@@ -552,7 +609,9 @@ private fun ChoiceButton(label: String, value: String, selected: String, onSelec
             containerColor = if (selected == value) XanhGreen else XanhSoft,
             contentColor = if (selected == value) Color.White else XanhGreen
         )
-    ) { Text(label, fontSize = 11.sp) }
+    ) {
+        Text(label, fontSize = 10.sp)
+    }
 }
 
 @Composable
@@ -567,7 +626,9 @@ private fun WalletPicker(
     Column {
         Text(label, color = CryMuted, fontSize = 12.sp)
         Card(
-            modifier = Modifier.fillMaxWidth().clickable { onExpandedChange(true) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onExpandedChange(true) },
             colors = CardDefaults.cardColors(containerColor = XanhSoft)
         ) {
             Text(selectedWallet?.name ?: "Chọn ví", modifier = Modifier.padding(12.dp), color = CryText)
@@ -575,7 +636,7 @@ private fun WalletPicker(
         DropdownMenu(expanded = expanded, onDismissRequest = { onExpandedChange(false) }) {
             wallets.forEach { wallet ->
                 DropdownMenuItem(
-                    text = { Text("${wallet.name} • ${formatCurrency(wallet.balance)}") },
+                    text = { Text(wallet.name) },
                     onClick = {
                         onSelect(wallet)
                         onExpandedChange(false)
@@ -586,42 +647,48 @@ private fun WalletPicker(
     }
 }
 
-private fun weekRange(offset: Int): Pair<Long, Long> {
-    val calendar = Calendar.getInstance()
-    calendar.firstDayOfWeek = Calendar.MONDAY
-    calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
-    calendar.add(Calendar.WEEK_OF_YEAR, offset)
-    calendar.set(Calendar.HOUR_OF_DAY, 0)
-    calendar.set(Calendar.MINUTE, 0)
-    calendar.set(Calendar.SECOND, 0)
-    calendar.set(Calendar.MILLISECOND, 0)
-    val start = calendar.timeInMillis
-    calendar.add(Calendar.DAY_OF_YEAR, 6)
-    calendar.set(Calendar.HOUR_OF_DAY, 23)
-    calendar.set(Calendar.MINUTE, 59)
-    calendar.set(Calendar.SECOND, 59)
-    calendar.set(Calendar.MILLISECOND, 999)
-    return start to calendar.timeInMillis
-}
+private fun parseMoney(value: String): Double? = value
+    .replace(".", "")
+    .replace(",", "")
+    .trim()
+    .toDoubleOrNull()
 
-private fun dayKey(timestamp: Long): String = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(timestamp))
-private fun parseMoney(value: String): Double? = value.replace(".", "").replace(",", "").trim().toDoubleOrNull()
 private fun formatCurrency(amount: Double): String {
     val formatter = NumberFormat.getNumberInstance(Locale("vi", "VN"))
     formatter.maximumFractionDigits = 0
     return "${formatter.format(amount)} đ"
 }
-private fun formatDate(timestamp: Long): String = SimpleDateFormat("dd/MM/yyyy", Locale("vi", "VN")).format(Date(timestamp))
-private fun formatWeekday(timestamp: Long): String = SimpleDateFormat("EEEE", Locale("vi", "VN")).format(Date(timestamp)).replaceFirstChar { it.uppercase() }
+
+private fun formatDate(timestamp: Long): String =
+    SimpleDateFormat("dd/MM/yyyy", Locale("vi", "VN")).format(Date(timestamp))
+
 private fun parseDate(value: String): Long? = try {
     SimpleDateFormat("dd/MM/yyyy", Locale("vi", "VN")).apply { isLenient = false }.parse(value)?.time
-} catch (_: Exception) { null }
+} catch (_: Exception) {
+    null
+}
 
-private fun formatPaymentType(type: String): String = when (type) {
-    XanhTrip.PAYMENT_CASH -> "Tiền mặt"
-    XanhTrip.PAYMENT_BANK -> "Chuyển khoản"
-    XanhTrip.PAYMENT_WALLET_CARD -> "Thẻ ví"
-    else -> type
+private fun formatWeekday(timestamp: Long): String =
+    SimpleDateFormat("EEEE", Locale("vi", "VN")).format(Date(timestamp)).replaceFirstChar { it.uppercase() }
+
+private fun dayKey(timestamp: Long): String =
+    SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(timestamp))
+
+private fun weekRange(offset: Int): Pair<Long, Long> {
+    val calendar = Calendar.getInstance()
+    val diff = if (calendar.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY) -6 else Calendar.MONDAY - calendar.get(Calendar.DAY_OF_WEEK)
+    calendar.add(Calendar.DAY_OF_MONTH, diff + offset * 7)
+    calendar.set(Calendar.HOUR_OF_DAY, 0)
+    calendar.set(Calendar.MINUTE, 0)
+    calendar.set(Calendar.SECOND, 0)
+    calendar.set(Calendar.MILLISECOND, 0)
+    val start = calendar.timeInMillis
+    calendar.add(Calendar.DAY_OF_MONTH, 6)
+    calendar.set(Calendar.HOUR_OF_DAY, 23)
+    calendar.set(Calendar.MINUTE, 59)
+    calendar.set(Calendar.SECOND, 59)
+    calendar.set(Calendar.MILLISECOND, 999)
+    return start to calendar.timeInMillis
 }
 
 private fun formatServiceType(type: String): String = when (type) {
@@ -633,9 +700,16 @@ private fun formatServiceType(type: String): String = when (type) {
 }
 
 private fun formatTimeSlot(slot: String): String = when (slot) {
-    XanhTrip.SLOT_MORNING -> "Sáng 06:00-09:00"
-    XanhTrip.SLOT_NOON -> "Trưa 11:00-13:30"
-    XanhTrip.SLOT_AFTERNOON -> "Chiều 16:30-19:30"
+    XanhTrip.SLOT_MORNING -> "Sáng"
+    XanhTrip.SLOT_NOON -> "Trưa"
+    XanhTrip.SLOT_AFTERNOON -> "Chiều"
     XanhTrip.SLOT_OFFPEAK -> "Ngoài giờ"
     else -> slot
+}
+
+private fun formatPaymentType(type: String): String = when (type) {
+    XanhTrip.PAYMENT_CASH -> "Tiền mặt"
+    XanhTrip.PAYMENT_BANK -> "Chuyển khoản"
+    XanhTrip.PAYMENT_WALLET_CARD -> "Thẻ ví"
+    else -> type
 }

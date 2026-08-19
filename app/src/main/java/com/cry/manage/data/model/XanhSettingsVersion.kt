@@ -36,10 +36,15 @@ data class XanhSettingsVersion(
     val offpeak2h: Int = 1,
     val offpeakFood: Int = 1,
 
+    // Giữ lại 3 mốc cũ để migration và dữ liệu lịch sử tương thích.
     val milestone1Points: Int = 50,
     val milestone1Reward: Double = 50_000.0,
     val milestone2Points: Int = 100,
     val milestone2Reward: Double = 150_000.0,
     val milestone3Points: Int = 150,
-    val milestone3Reward: Double = 300_000.0
+    val milestone3Reward: Double = 300_000.0,
+
+    // Danh sách mốc động, ví dụ: "50:50000|100:150000|150:300000|200:500000".
+    // Cấu hình cũ có giá trị rỗng sẽ tự fallback về 3 mốc phía trên.
+    val milestonesData: String = ""
 )

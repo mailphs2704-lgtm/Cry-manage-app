@@ -2,7 +2,6 @@ package com.cry.manage
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,11 +34,6 @@ class MainActivity : ComponentActivity() {
                             isProjectMenu = true
                         }
                     )
-                }
-
-                BackHandler(enabled = isProjectMenu) {
-                    // ProjectMenuScreen tự xử lý các màn hình con.
-                    // Callback này chỉ là lớp an toàn ở cấp Activity.
                 }
             }
         }

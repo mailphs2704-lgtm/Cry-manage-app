@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
 data class XanhTrip(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val serviceType: String,
+    val serviceType: String = "BIKE",
     val revenue: Double,
     val netIncome: Double,
     val tips: Double = 0.0,
